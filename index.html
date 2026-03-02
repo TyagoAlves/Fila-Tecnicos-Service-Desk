@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Service Desk - Sede & Anexo (v3)</title>
+    <style>
+        :root { --primary: #2c3e50; --sede: #2980b9; --anexo: #8e44ad; --danger: #e74c3c; --success: #27ae60; --dark: #1a252f; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        
+        /* Telas de Login/Overlay */
+        #login-screen { position: fixed; inset: 0; background: var(--primary); display: flex; align-items: center; justify-content: center; z-index: 1000; color: white; }
+        .login-box { background: white; color: #333; padding: 30px; border-radius: 12px; width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        
+        /* Layout Principal */
+        header { background: var(--dark); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .main-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; flex-grow: 1; }
+        
+        /* Cards */
+        .card { background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow: hidden; display: flex; flex-direction: column; }
+        .card-header { padding: 12px; color: white; font-weight: bold; text-align: center; }
+        .content { padding: 15px; flex-grow: 1; }
+        
+        /* Estilos de Status */
+        .status-box { background: #f8f9fa; border: 1px solid #eee; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px; }
+        .tec-nome { font-size: 24px; font-weight: bold; color: var(--primary); }
+        
+        /* Botões e Inputs */
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-send { background: var(--success); color: white; }
+        .btn-mgr { background: #f39c12; color: white; margin-top: 10px; }
+        .btn-logout { background: transparent; border: 1px solid white; color: white; width: auto; padding: 5px 15px; }
+
+        /* Área Gerencial (Oculta por padrão) */
+        #manager-panel { display: none; background: #ebedef; padding: 20px; border-top: 2px solid #ccc; }
+        .mgr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .log-box { background: #222; color: #0f0; padding: 10px; font-family: monospace; height: 150px; overflow-y: auto; border-radius: 4px; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div id="login-screen">
+    <div class="login-box">
+        <h2>Acesso ao Sistema</h2>
+        <p>Identifique-se para continuar</p>
+        <input type="text" id="user-name-input" placeholder="Digite seu Nome Completo">
+        <button class="btn-send" onclick="entrarNoSistema()">Entrar no Painel</button>
+    </div>
+</div>
+
+<header>
+    <div><strong>GlobalWeb</strong> | Fila Service Desk</div>
+    <div id="user-display">Atendente: ---</div>
+    <button class="btn-logout" onclick="logout()">Sair</button>
+</header>
+
+<div class="main-container">
+    <div class="card" style="border-top: 4px solid var(--sede);">
+        <div class="card-header" style="background: var(--sede);">SEDE</div>
+        <div class="content">
+            <div class="status-box">
+                <span id="nome-sede" class="tec-nome">---</span>
+                <div id="status-sede">---</div>
+            </div>
+            <input type="text" id="wo-sede" placeholder="Nº da WO ou REQ">
+            <button class="btn-send" onclick="encaminhar('sede')">Encaminhar Chamado</button>
+            <button class="btn-mgr" id="btn-open-mgr" onclick="pedirSenhaGerente()">Acesso Gerencial</button>
+        </div>
+    </div>
+
+    <div class="card" style="border-top: 4px solid var(--anexo);">
+        <div class="card-header" style="background: var(--anexo);">ANEXO</div>
+        <div class="content">
+            <div class="status-box">
+                <span id="nome-anexo" class="tec-nome">---</span>
+                <div id="status-anexo">---</div>
+            </div>
+            <input type="text" id="wo-anexo" placeholder="Nº da WO ou REQ">
+            <button class="btn-send" onclick="encaminhar('anexo')">Encaminhar Chamado</button>
+        </div>
+    </div>
+</div>
+
+<div id="manager-panel">
+    <h3><center>⚙️ PAINEL DE CONTROLE GERENCIAL</center></h3>
+    <div class="mgr-grid">
+        <div>
+            <h4>Comandos SEDE</h4>
+            <button class="btn-fail" style="background:var(--danger); color:white;" onclick="gerenteAcao('sede', 'falha')">Reportar Falha</button>
+            <button class="btn-send" style="background:var(--primary); color:white; margin-top:5px;" onclick="gerenteAcao('sede', 'pular')">Avançar Fila Manualmente</button>
+        </div>
+        <div>
+            <h4>Comandos ANEXO</h4>
+            <button class="btn-fail" style="background:var(--danger); color:white;" onclick="gerenteAcao('anexo', 'falha')">Reportar Falha</button>
+            <button class="btn-send" style="background:var(--primary); color:white; margin-top:5px;" onclick="gerenteAcao('anexo', 'pular')">Avançar Fila Manualmente</button>
+        </div>
+    </div>
+    <h4 style="margin-top:20px;">Log Global de Eventos</h4>
+    <div id="global-log" class="log-box"></div>
+</div>
+
+<script>
+    const bc = new BroadcastChannel('sd_sync_v3');
+    let atendenteAtual = sessionStorage.getItem('atendente') || "";
+
+    // Configuração inicial conforme a imagem do usuário
+    const tecBase = {
+        sede: [
+            { nome: "Lucas", ent: "07:00", sai: "16:00", almI: "11:00", almF: "12:00", ativo: true },
+            { nome: "Daniela", ent: "08:30", sai: "17:30", almI: "12:00", almF: "13:00", ativo: true },
+            { nome: "Matheus", ent: "10:00", sai: "19:00", almI: "13:00", almF: "14:00", ativo: true },
+            { nome: "Rafael", ent: "13:00", sai: "22:00", almI: "17:00", almF: "18:00", ativo: true }
+        ],
+        anexo: [
+            { nome: "Cacau", ent: "07:00", sai: "16:00", almI: "11:00", almF: "12:00", ativo: true },
+            { nome: "Luan", ent: "08:30", sai: "17:30", almI: "13:00", almF: "14:00", ativo: true },
+            { nome: "Tiago", ent: "10:00", sai: "19:00", almI: "15:00", almF: "16:00", ativo: true }
+        ]
+    };
+
+    let db = JSON.parse(localStorage.getItem('sd_db_v3')) || {
+        tecnicos: tecBase,
+        pos: { sede: 0, anexo: 0 },
+        logs: []
+    };
+
+    // FUNÇÕES DE LOGIN
+    function entrarNoSistema() {
+        const nome = document.getElementById('user-name-input').value.trim();
+        if(!nome) return alert("Por favor, digite seu nome.");
+        
+        atendenteAtual = nome;
+        sessionStorage.setItem('atendente', nome);
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('user-display').innerText = `Atendente: ${nome}`;
+        render();
+    }
+
+    if(atendenteAtual) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('user-display').innerText = `Atendente: ${atendenteAtual}`;
+    }
+
+    function logout() {
+        sessionStorage.clear();
+        location.reload();
+    }
+
+    // SEGURANÇA GERENCIAL
+    function pedirSenhaGerente() {
+        const pass = prompt("Digite a senha de Gerente:");
+        if(pass === "admin123") {
+            document.getElementById('manager-panel').style.display = 'block';
+            document.getElementById('btn-open-mgr').innerText = "Painel Gerencial Ativo";
+            window.scrollTo(0, document.body.scrollHeight);
+        } else {
+            alert("Senha incorreta!");
+        }
+    }
+
+    // LÓGICA CORE
+    function checkStatus(tec) {
+        if(!tec.ativo) return { ok: false, msg: "FALHA / INDISPONÍVEL" };
+        const agora = new Date();
+        const parse = (t) => {
+            const [h, m] = t.split(':');
+            const d = new Date(); d.setHours(h, m, 0, 0); return d.getTime();
+        };
+        const now = agora.getTime();
+        const margem = 30 * 60 * 1000;
+
+        if (now < parse(tec.ent) + margem) return { ok: false, msg: "ENTRADA RECENTE" };
+        if (now > parse(tec.almI) - margem && now < parse(tec.almF)) return { ok: false, msg: "INTERVALO / ALMOÇO" };
+        if (now > parse(tec.sai) - margem) return { ok: false, msg: "FIM DE TURNO" };
+        if (now < parse(tec.ent) || now > parse(tec.sai)) return { ok: false, msg: "FORA DE HORÁRIO" };
+        return { ok: true, msg: "DISPONÍVEL" };
+    }
+
+    function sync() {
+        localStorage.setItem('sd_db_v3', JSON.stringify(db));
+        bc.postMessage(db);
+        render();
+    }
+
+    bc.onmessage = (e) => { db = e.data; render(); };
+
+    function encaminhar(area) {
+        const wo = document.getElementById(`wo-${area}`).value;
+        const tec = db.tecnicos[area][db.pos[area]];
+        
+        if(!wo) return alert("Digite o número da WO/REQ!");
+        const status = checkStatus(tec);
+        if(!status.ok) return alert("Técnico não pode receber agora: " + status.msg);
+
+        db.logs.unshift(`[${new Date().toLocaleTimeString()}] ${area.toUpperCase()}: ${wo} p/ ${tec.nome} (Atendente: ${atendenteAtual})`);
+        
+        // Pula para o próximo disponível automaticamente
+        let i = db.pos[area];
+        let original = i;
+        do {
+            i = (i + 1) % db.tecnicos[area].length;
+            if(checkStatus(db.tecnicos[area][i]).ok) break;
+        } while (i !== original);
+        
+        db.pos[area] = i;
+        document.getElementById(`wo-${area}`).value = "";
+        sync();
+    }
+
+    // AÇÕES DO GERENTE
+    function gerenteAcao(area, tipo) {
+        const tec = db.tecnicos[area][db.pos[area]];
+        if(tipo === 'falha') {
+            tec.ativo = false;
+            db.logs.unshift(`[${new Date().toLocaleTimeString()}] !!! GERENCIAL: Falha reportada para ${tec.nome}`);
+        } else {
+            db.pos[area] = (db.pos[area] + 1) % db.tecnicos[area].length;
+            db.logs.unshift(`[${new Date().toLocaleTimeString()}] GERENCIAL: Fila ${area} avançada manualmente`);
+        }
+        sync();
+    }
+
+    function render() {
+        ['sede', 'anexo'].forEach(area => {
+            const tec = db.tecnicos[area][db.pos[area]];
+            const status = checkStatus(tec);
+            document.getElementById(`nome-${area}`).innerText = tec.nome;
+            const elStatus = document.getElementById(`status-${area}`);
+            elStatus.innerText = status.msg;
+            elStatus.style.color = status.ok ? "var(--success)" : "var(--danger)";
+        });
+        document.getElementById('global-log').innerHTML = db.logs.join('<br>');
+    }
+
+    setInterval(render, 30000);
+    render();
+</script>
+
+</body>
+</html>
