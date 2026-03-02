@@ -2,39 +2,72 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Service Desk - Sede & Anexo (v3)</title>
+    <title>Service Desk - Sede & Anexo (v4)</title>
     <style>
-        :root { --primary: #2c3e50; --sede: #2980b9; --anexo: #8e44ad; --danger: #e74c3c; --success: #27ae60; --dark: #1a252f; }
-        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        /* Variáveis de Cores para Temas */
+        :root {
+            --primary: #2c3e50;
+            --sede: #2980b9;
+            --anexo: #8e44ad;
+            --danger: #e74c3c;
+            --success: #27ae60;
+            --dark-header: #1a252f;
+            
+            /* Modo Claro (Default) */
+            --bg-body: #f0f2f5;
+            --bg-card: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --bg-input: #ffffff;
+            --border-color: #dddddd;
+            --bg-status: #f8f9fa;
+        }
+
+        [data-theme="dark"] {
+            --bg-body: #121212;
+            --bg-card: #1e1e1e;
+            --text-main: #e0e0e0;
+            --text-muted: #b0b0b0;
+            --bg-input: #2d2d2d;
+            --border-color: #444444;
+            --bg-status: #252525;
+            --primary: #34495e;
+        }
+
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: var(--bg-body); 
+            color: var(--text-main);
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh;
+            transition: background 0.3s, color 0.3s;
+        }
         
-        /* Telas de Login/Overlay */
-        #login-screen { position: fixed; inset: 0; background: var(--primary); display: flex; align-items: center; justify-content: center; z-index: 1000; color: white; }
-        .login-box { background: white; color: #333; padding: 30px; border-radius: 12px; width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        #login-screen { position: fixed; inset: 0; background: var(--dark-header); display: flex; align-items: center; justify-content: center; z-index: 1000; color: white; }
+        .login-box { background: var(--bg-card); color: var(--text-main); padding: 30px; border-radius: 12px; width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         
-        /* Layout Principal */
-        header { background: var(--dark); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
+        header { background: var(--dark-header); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
         .main-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; flex-grow: 1; }
         
-        /* Cards */
-        .card { background: white; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow: hidden; display: flex; flex-direction: column; }
+        .card { background: var(--bg-card); border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--border-color); }
         .card-header { padding: 12px; color: white; font-weight: bold; text-align: center; }
         .content { padding: 15px; flex-grow: 1; }
         
-        /* Estilos de Status */
-        .status-box { background: #f8f9fa; border: 1px solid #eee; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px; }
-        .tec-nome { font-size: 24px; font-weight: bold; color: var(--primary); }
-        
-        /* Botões e Inputs */
-        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .status-box { background: var(--bg-status); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px; }
+        .tec-nome { font-size: 24px; font-weight: bold; color: var(--sede); }
+        [data-theme="dark"] .tec-nome { color: #5dade2; }
+
+        input { background: var(--bg-input); color: var(--text-main); width: 100%; padding: 12px; margin: 10px 0; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .btn-send { background: var(--success); color: white; }
         .btn-mgr { background: #f39c12; color: white; margin-top: 10px; }
-        .btn-logout { background: transparent; border: 1px solid white; color: white; width: auto; padding: 5px 15px; }
+        .btn-logout, .btn-theme { background: transparent; border: 1px solid white; color: white; width: auto; padding: 5px 15px; margin-left: 10px; }
 
-        /* Área Gerencial (Oculta por padrão) */
-        #manager-panel { display: none; background: #ebedef; padding: 20px; border-top: 2px solid #ccc; }
+        #manager-panel { display: none; background: var(--bg-status); padding: 20px; border-top: 2px solid var(--border-color); }
         .mgr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .log-box { background: #222; color: #0f0; padding: 10px; font-family: monospace; height: 150px; overflow-y: auto; border-radius: 4px; font-size: 12px; }
+        .log-box { background: #000; color: #0f0; padding: 10px; font-family: monospace; height: 150px; overflow-y: auto; border-radius: 4px; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -51,7 +84,10 @@
 <header>
     <div><strong>GlobalWeb</strong> | Fila Service Desk</div>
     <div id="user-display">Atendente: ---</div>
-    <button class="btn-logout" onclick="logout()">Sair</button>
+    <div style="display:flex;">
+        <button class="btn-theme" onclick="toggleTheme()" id="theme-icon">🌙 Modo Escuro</button>
+        <button class="btn-logout" onclick="logout()">Sair</button>
+    </div>
 </header>
 
 <div class="main-container">
@@ -60,7 +96,7 @@
         <div class="content">
             <div class="status-box">
                 <span id="nome-sede" class="tec-nome">---</span>
-                <div id="status-sede">---</div>
+                <div id="status-sede" style="color: var(--text-muted);">---</div>
             </div>
             <input type="text" id="wo-sede" placeholder="Nº da WO ou REQ">
             <button class="btn-send" onclick="encaminhar('sede')">Encaminhar Chamado</button>
@@ -72,8 +108,8 @@
         <div class="card-header" style="background: var(--anexo);">ANEXO</div>
         <div class="content">
             <div class="status-box">
-                <span id="nome-anexo" class="tec-nome">---</span>
-                <div id="status-anexo">---</div>
+                <span id="nome-anexo" class="tec-nome" style="color: var(--anexo);">---</span>
+                <div id="status-anexo" style="color: var(--text-muted);">---</div>
             </div>
             <input type="text" id="wo-anexo" placeholder="Nº da WO ou REQ">
             <button class="btn-send" onclick="encaminhar('anexo')">Encaminhar Chamado</button>
@@ -100,10 +136,24 @@
 </div>
 
 <script>
-    const bc = new BroadcastChannel('sd_sync_v3');
+    const bc = new BroadcastChannel('sd_sync_v4');
     let atendenteAtual = sessionStorage.getItem('atendente') || "";
 
-    // Configuração inicial conforme a imagem do usuário
+    // TEMA
+    function toggleTheme() {
+        const currentTheme = document.documentElement.getAttribute("data-theme");
+        const newTheme = currentTheme === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", newTheme);
+        localStorage.setItem("theme", newTheme);
+        document.getElementById("theme-icon").innerText = newTheme === "dark" ? "☀️ Modo Claro" : "🌙 Modo Escuro";
+    }
+
+    // Carregar tema salvo
+    const savedTheme = localStorage.getItem("theme") || "light";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+    document.getElementById("theme-icon").innerText = savedTheme === "dark" ? "☀️ Modo Claro" : "🌙 Modo Escuro";
+
+    // DADOS INICIAIS (BASEADOS NA IMAGEM)
     const tecBase = {
         sede: [
             { nome: "Lucas", ent: "07:00", sai: "16:00", almI: "11:00", almF: "12:00", ativo: true },
@@ -118,17 +168,15 @@
         ]
     };
 
-    let db = JSON.parse(localStorage.getItem('sd_db_v3')) || {
+    let db = JSON.parse(localStorage.getItem('sd_db_v4')) || {
         tecnicos: tecBase,
         pos: { sede: 0, anexo: 0 },
         logs: []
     };
 
-    // FUNÇÕES DE LOGIN
     function entrarNoSistema() {
         const nome = document.getElementById('user-name-input').value.trim();
         if(!nome) return alert("Por favor, digite seu nome.");
-        
         atendenteAtual = nome;
         sessionStorage.setItem('atendente', nome);
         document.getElementById('login-screen').style.display = 'none';
@@ -146,19 +194,16 @@
         location.reload();
     }
 
-    // SEGURANÇA GERENCIAL
     function pedirSenhaGerente() {
         const pass = prompt("Digite a senha de Gerente:");
         if(pass === "admin123") {
             document.getElementById('manager-panel').style.display = 'block';
-            document.getElementById('btn-open-mgr').innerText = "Painel Gerencial Ativo";
             window.scrollTo(0, document.body.scrollHeight);
         } else {
             alert("Senha incorreta!");
         }
     }
 
-    // LÓGICA CORE
     function checkStatus(tec) {
         if(!tec.ativo) return { ok: false, msg: "FALHA / INDISPONÍVEL" };
         const agora = new Date();
@@ -172,12 +217,12 @@
         if (now < parse(tec.ent) + margem) return { ok: false, msg: "ENTRADA RECENTE" };
         if (now > parse(tec.almI) - margem && now < parse(tec.almF)) return { ok: false, msg: "INTERVALO / ALMOÇO" };
         if (now > parse(tec.sai) - margem) return { ok: false, msg: "FIM DE TURNO" };
-        if (now < parse(tec.ent) || now > parse(tec.sai)) return { ok: false, msg: "FORA DE HORÁRIO" };
+        if (now < parse(tec.ent) || now > parse(tec.sai)) return { ok: false, msg: "FORA DO HORÁRIO" };
         return { ok: true, msg: "DISPONÍVEL" };
     }
 
     function sync() {
-        localStorage.setItem('sd_db_v3', JSON.stringify(db));
+        localStorage.setItem('sd_db_v4', JSON.stringify(db));
         bc.postMessage(db);
         render();
     }
@@ -187,14 +232,12 @@
     function encaminhar(area) {
         const wo = document.getElementById(`wo-${area}`).value;
         const tec = db.tecnicos[area][db.pos[area]];
-        
         if(!wo) return alert("Digite o número da WO/REQ!");
         const status = checkStatus(tec);
-        if(!status.ok) return alert("Técnico não pode receber agora: " + status.msg);
+        if(!status.ok) return alert("Técnico indisponível: " + status.msg);
 
-        db.logs.unshift(`[${new Date().toLocaleTimeString()}] ${area.toUpperCase()}: ${wo} p/ ${tec.nome} (Atendente: ${atendenteAtual})`);
+        db.logs.unshift(`[${new Date().toLocaleTimeString()}] ${area.toUpperCase()}: ${wo} p/ ${tec.nome} (${atendenteAtual})`);
         
-        // Pula para o próximo disponível automaticamente
         let i = db.pos[area];
         let original = i;
         do {
@@ -207,15 +250,14 @@
         sync();
     }
 
-    // AÇÕES DO GERENTE
     function gerenteAcao(area, tipo) {
         const tec = db.tecnicos[area][db.pos[area]];
         if(tipo === 'falha') {
             tec.ativo = false;
-            db.logs.unshift(`[${new Date().toLocaleTimeString()}] !!! GERENCIAL: Falha reportada para ${tec.nome}`);
+            db.logs.unshift(`[${new Date().toLocaleTimeString()}] !!! GERENCIAL: Falha em ${tec.nome}`);
         } else {
             db.pos[area] = (db.pos[area] + 1) % db.tecnicos[area].length;
-            db.logs.unshift(`[${new Date().toLocaleTimeString()}] GERENCIAL: Fila ${area} avançada manualmente`);
+            db.logs.unshift(`[${new Date().toLocaleTimeString()}] GERENCIAL: Fila ${area} avançada`);
         }
         sync();
     }
@@ -235,6 +277,5 @@
     setInterval(render, 30000);
     render();
 </script>
-
 </body>
 </html>
