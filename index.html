@@ -212,12 +212,18 @@
             const d = new Date(); d.setHours(h, m, 0, 0); return d.getTime();
         };
         const now = agora.getTime();
-        const margem = 30 * 60 * 1000;
+        const margem = 30 * 60 * 1000; // 30 minutos em milissegundos
 
-        if (now < parse(tec.ent) + margem) return { ok: false, msg: "ENTRADA RECENTE" };
-        if (now > parse(tec.almI) - margem && now < parse(tec.almF)) return { ok: false, msg: "INTERVALO / ALMOÇO" };
-        if (now > parse(tec.sai) - margem) return { ok: false, msg: "FIM DE TURNO" };
+        // 1. Bloqueia se for ANTES da hora de entrada ou DEPOIS da hora de saída
         if (now < parse(tec.ent) || now > parse(tec.sai)) return { ok: false, msg: "FORA DO HORÁRIO" };
+
+        // 2. Bloqueia 30 min ANTES do almoço e durante todo o almoço
+        if (now >= parse(tec.almI) - margem && now < parse(tec.almF)) return { ok: false, msg: "INTERVALO / PRÓX. AO ALMOÇO" };
+        
+        // 3. Bloqueia 30 min ANTES do horário de ir embora
+        if (now >= parse(tec.sai) - margem) return { ok: false, msg: "FIM DE TURNO" };
+        
+        // Se passou pelas regras acima, está liberado para receber chamado (mesmo se acabou de entrar!)
         return { ok: true, msg: "DISPONÍVEL" };
     }
 
