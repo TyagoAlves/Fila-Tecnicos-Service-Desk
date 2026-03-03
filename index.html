@@ -2,69 +2,30 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Service Desk - Sede & Anexo (v4)</title>
+    <title>Service Desk - Sede & Anexo (Real-time Firebase)</title>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
+    
     <style>
-        /* Variáveis de Cores para Temas */
-        :root {
-            --primary: #2c3e50;
-            --sede: #2980b9;
-            --anexo: #8e44ad;
-            --danger: #e74c3c;
-            --success: #27ae60;
-            --dark-header: #1a252f;
-            
-            /* Modo Claro (Default) */
-            --bg-body: #f0f2f5;
-            --bg-card: #ffffff;
-            --text-main: #333333;
-            --text-muted: #666666;
-            --bg-input: #ffffff;
-            --border-color: #dddddd;
-            --bg-status: #f8f9fa;
-        }
-
-        [data-theme="dark"] {
-            --bg-body: #121212;
-            --bg-card: #1e1e1e;
-            --text-main: #e0e0e0;
-            --text-muted: #b0b0b0;
-            --bg-input: #2d2d2d;
-            --border-color: #444444;
-            --bg-status: #252525;
-            --primary: #34495e;
-        }
-
-        body { 
-            font-family: 'Segoe UI', sans-serif; 
-            background: var(--bg-body); 
-            color: var(--text-main);
-            margin: 0; 
-            display: flex; 
-            flex-direction: column; 
-            min-height: 100vh;
-            transition: background 0.3s, color 0.3s;
-        }
-        
+        /* MESMO CSS DE ANTES MANTIDO AQUI PARA ECONOMIZAR ESPAÇO, PODE MANTER O SEU CSS COMPLETO (MODO CLARO E ESCURO) AQUI */
+        :root { --primary: #2c3e50; --sede: #2980b9; --anexo: #8e44ad; --danger: #e74c3c; --success: #27ae60; --dark-header: #1a252f; --bg-body: #f0f2f5; --bg-card: #ffffff; --text-main: #333333; --text-muted: #666666; --bg-input: #ffffff; --border-color: #dddddd; --bg-status: #f8f9fa; }
+        [data-theme="dark"] { --bg-body: #121212; --bg-card: #1e1e1e; --text-main: #e0e0e0; --text-muted: #b0b0b0; --bg-input: #2d2d2d; --border-color: #444444; --bg-status: #252525; --primary: #34495e; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; display: flex; flex-direction: column; min-height: 100vh; transition: background 0.3s, color 0.3s; }
         #login-screen { position: fixed; inset: 0; background: var(--dark-header); display: flex; align-items: center; justify-content: center; z-index: 1000; color: white; }
         .login-box { background: var(--bg-card); color: var(--text-main); padding: 30px; border-radius: 12px; width: 350px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
-        
         header { background: var(--dark-header); color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; }
         .main-container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; flex-grow: 1; }
-        
         .card { background: var(--bg-card); border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--border-color); }
         .card-header { padding: 12px; color: white; font-weight: bold; text-align: center; }
         .content { padding: 15px; flex-grow: 1; }
-        
         .status-box { background: var(--bg-status); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 15px; }
         .tec-nome { font-size: 24px; font-weight: bold; color: var(--sede); }
         [data-theme="dark"] .tec-nome { color: #5dade2; }
-
         input { background: var(--bg-input); color: var(--text-main); width: 100%; padding: 12px; margin: 10px 0; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; }
         button { width: 100%; padding: 12px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.3s; }
         .btn-send { background: var(--success); color: white; }
         .btn-mgr { background: #f39c12; color: white; margin-top: 10px; }
         .btn-logout, .btn-theme { background: transparent; border: 1px solid white; color: white; width: auto; padding: 5px 15px; margin-left: 10px; }
-
         #manager-panel { display: none; background: var(--bg-status); padding: 20px; border-top: 2px solid var(--border-color); }
         .mgr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .log-box { background: #000; color: #0f0; padding: 10px; font-family: monospace; height: 150px; overflow-y: auto; border-radius: 4px; font-size: 12px; }
@@ -96,7 +57,7 @@
         <div class="content">
             <div class="status-box">
                 <span id="nome-sede" class="tec-nome">---</span>
-                <div id="status-sede" style="color: var(--text-muted);">---</div>
+                <div id="status-sede" style="color: var(--text-muted);">Conectando ao banco...</div>
             </div>
             <input type="text" id="wo-sede" placeholder="Nº da WO ou REQ">
             <button class="btn-send" onclick="encaminhar('sede')">Encaminhar Chamado</button>
@@ -109,7 +70,7 @@
         <div class="content">
             <div class="status-box">
                 <span id="nome-anexo" class="tec-nome" style="color: var(--anexo);">---</span>
-                <div id="status-anexo" style="color: var(--text-muted);">---</div>
+                <div id="status-anexo" style="color: var(--text-muted);">Conectando ao banco...</div>
             </div>
             <input type="text" id="wo-anexo" placeholder="Nº da WO ou REQ">
             <button class="btn-send" onclick="encaminhar('anexo')">Encaminhar Chamado</button>
@@ -136,24 +97,30 @@
 </div>
 
 <script>
-    const bc = new BroadcastChannel('sd_sync_v4');
+    // ==========================================
+    // 1. COLOQUE SUAS CHAVES DO FIREBASE AQUI
+    // ==========================================
+    const firebaseConfig = {
+  apiKey: "AIzaSyBgNuDB7CvaymN0unYSq6XHyDoKLNTeJVU",
+  authDomain: "servicedeskfila.firebaseapp.com",
+  databaseURL: "https://servicedeskfila-default-rtdb.firebaseio.com",
+  projectId: "servicedeskfila",
+  storageBucket: "servicedeskfila.firebasestorage.app",
+  messagingSenderId: "132113485171",
+  appId: "1:132113485171:web:312ed786f844b2fd140906"
+};
+
+    // Inicializa o Firebase
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+    const dbRef = database.ref('globalweb/fila'); // Nome da "tabela" no banco
+
+    // ==========================================
+    // LÓGICA DO SISTEMA
+    // ==========================================
     let atendenteAtual = sessionStorage.getItem('atendente') || "";
-
-    // TEMA
-    function toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute("data-theme");
-        const newTheme = currentTheme === "dark" ? "light" : "dark";
-        document.documentElement.setAttribute("data-theme", newTheme);
-        localStorage.setItem("theme", newTheme);
-        document.getElementById("theme-icon").innerText = newTheme === "dark" ? "☀️ Modo Claro" : "🌙 Modo Escuro";
-    }
-
-    // Carregar tema salvo
-    const savedTheme = localStorage.getItem("theme") || "light";
-    document.documentElement.setAttribute("data-theme", savedTheme);
-    document.getElementById("theme-icon").innerText = savedTheme === "dark" ? "☀️ Modo Claro" : "🌙 Modo Escuro";
-
-    // DADOS INICIAIS (BASEADOS NA IMAGEM)
+    
+    // Dados padrão caso o banco esteja vazio
     const tecBase = {
         sede: [
             { nome: "Lucas", ent: "07:00", sai: "16:00", almI: "11:00", almF: "12:00", ativo: true },
@@ -168,42 +135,27 @@
         ]
     };
 
-    let db = JSON.parse(localStorage.getItem('sd_db_v4')) || {
-        tecnicos: tecBase,
-        pos: { sede: 0, anexo: 0 },
-        logs: []
-    };
+    let db = { tecnicos: tecBase, pos: { sede: 0, anexo: 0 }, logs: [] };
 
-    function entrarNoSistema() {
-        const nome = document.getElementById('user-name-input').value.trim();
-        if(!nome) return alert("Por favor, digite seu nome.");
-        atendenteAtual = nome;
-        sessionStorage.setItem('atendente', nome);
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('user-display').innerText = `Atendente: ${nome}`;
-        render();
-    }
-
-    if(atendenteAtual) {
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('user-display').innerText = `Atendente: ${atendenteAtual}`;
-    }
-
-    function logout() {
-        sessionStorage.clear();
-        location.reload();
-    }
-
-    function pedirSenhaGerente() {
-        const pass = prompt("Digite a senha de Gerente:");
-        if(pass === "admin123") {
-            document.getElementById('manager-panel').style.display = 'block';
-            window.scrollTo(0, document.body.scrollHeight);
+    // ESCUTA O BANCO EM TEMPO REAL (A mágica acontece aqui)
+    dbRef.on('value', (snapshot) => {
+        const dadosDoBanco = snapshot.val();
+        if (dadosDoBanco) {
+            db = dadosDoBanco; // Se tem dados no servidor, puxa pra tela
         } else {
-            alert("Senha incorreta!");
+            dbRef.set(db); // Se for a 1ª vez de todas, cria no servidor
         }
+        render(); // Atualiza a tela automaticamente
+    });
+
+    // Função para salvar no servidor
+    function sync() {
+        dbRef.set(db); 
     }
 
+    // ==========================================
+    // REGRAS DE HORÁRIO ATUALIZADAS
+    // ==========================================
     function checkStatus(tec) {
         if(!tec.ativo) return { ok: false, msg: "FALHA / INDISPONÍVEL" };
         const agora = new Date();
@@ -212,28 +164,13 @@
             const d = new Date(); d.setHours(h, m, 0, 0); return d.getTime();
         };
         const now = agora.getTime();
-        const margem = 30 * 60 * 1000; // 30 minutos em milissegundos
+        const margem = 30 * 60 * 1000;
 
-        // 1. Bloqueia se for ANTES da hora de entrada ou DEPOIS da hora de saída
         if (now < parse(tec.ent) || now > parse(tec.sai)) return { ok: false, msg: "FORA DO HORÁRIO" };
-
-        // 2. Bloqueia 30 min ANTES do almoço e durante todo o almoço
         if (now >= parse(tec.almI) - margem && now < parse(tec.almF)) return { ok: false, msg: "INTERVALO / PRÓX. AO ALMOÇO" };
-        
-        // 3. Bloqueia 30 min ANTES do horário de ir embora
         if (now >= parse(tec.sai) - margem) return { ok: false, msg: "FIM DE TURNO" };
-        
-        // Se passou pelas regras acima, está liberado para receber chamado (mesmo se acabou de entrar!)
         return { ok: true, msg: "DISPONÍVEL" };
     }
-
-    function sync() {
-        localStorage.setItem('sd_db_v4', JSON.stringify(db));
-        bc.postMessage(db);
-        render();
-    }
-
-    bc.onmessage = (e) => { db = e.data; render(); };
 
     function encaminhar(area) {
         const wo = document.getElementById(`wo-${area}`).value;
@@ -242,6 +179,8 @@
         const status = checkStatus(tec);
         if(!status.ok) return alert("Técnico indisponível: " + status.msg);
 
+        // Garante que o log existe
+        if(!db.logs) db.logs = [];
         db.logs.unshift(`[${new Date().toLocaleTimeString()}] ${area.toUpperCase()}: ${wo} p/ ${tec.nome} (${atendenteAtual})`);
         
         let i = db.pos[area];
@@ -253,11 +192,14 @@
         
         db.pos[area] = i;
         document.getElementById(`wo-${area}`).value = "";
+        
+        // Manda pro banco do Google!
         sync();
     }
 
     function gerenteAcao(area, tipo) {
         const tec = db.tecnicos[area][db.pos[area]];
+        if(!db.logs) db.logs = [];
         if(tipo === 'falha') {
             tec.ativo = false;
             db.logs.unshift(`[${new Date().toLocaleTimeString()}] !!! GERENCIAL: Falha em ${tec.nome}`);
@@ -270,18 +212,54 @@
 
     function render() {
         ['sede', 'anexo'].forEach(area => {
-            const tec = db.tecnicos[area][db.pos[area]];
-            const status = checkStatus(tec);
-            document.getElementById(`nome-${area}`).innerText = tec.nome;
-            const elStatus = document.getElementById(`status-${area}`);
-            elStatus.innerText = status.msg;
-            elStatus.style.color = status.ok ? "var(--success)" : "var(--danger)";
+            if(db.tecnicos && db.tecnicos[area]) {
+                const tec = db.tecnicos[area][db.pos[area]];
+                const status = checkStatus(tec);
+                document.getElementById(`nome-${area}`).innerText = tec.nome;
+                const elStatus = document.getElementById(`status-${area}`);
+                elStatus.innerText = status.msg;
+                elStatus.style.color = status.ok ? "var(--success)" : "var(--danger)";
+            }
         });
-        document.getElementById('global-log').innerHTML = db.logs.join('<br>');
+        document.getElementById('global-log').innerHTML = (db.logs || []).join('<br>');
     }
 
-    setInterval(render, 30000);
-    render();
+    // ==========================================
+    // LOGIN E TEMA
+    // ==========================================
+    function entrarNoSistema() {
+        const nome = document.getElementById('user-name-input').value.trim();
+        if(!nome) return alert("Por favor, digite seu nome.");
+        atendenteAtual = nome;
+        sessionStorage.setItem('atendente', nome);
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('user-display').innerText = `Atendente: ${nome}`;
+    }
+
+    if(atendenteAtual) {
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('user-display').innerText = `Atendente: ${atendenteAtual}`;
+    }
+
+    function logout() { sessionStorage.clear(); location.reload(); }
+    function pedirSenhaGerente() {
+        if(prompt("Digite a senha de Gerente:") === "admin123") {
+            document.getElementById('manager-panel').style.display = 'block';
+            window.scrollTo(0, document.body.scrollHeight);
+        } else { alert("Senha incorreta!"); }
+    }
+
+    function toggleTheme() {
+        const newTheme = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+        document.documentElement.setAttribute("data-theme", newTheme);
+        localStorage.setItem("theme", newTheme);
+        document.getElementById("theme-icon").innerText = newTheme === "dark" ? "☀️ Modo Claro" : "🌙 Modo Escuro";
+    }
+    const savedTheme = localStorage.getItem("theme") || "light";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+    document.getElementById("theme-icon").innerText = savedTheme === "dark" ? "☀️ Modo Claro" : "🌙 Modo Escuro";
+
+    setInterval(render, 30000); // Atualiza os horários a cada 30s
 </script>
 </body>
 </html>
