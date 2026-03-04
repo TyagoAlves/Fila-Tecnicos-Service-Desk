@@ -2,12 +2,11 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <title>Service Desk - Sede & Anexo (Real-time Firebase)</title>
+    <title>Service Desk - Auto-Pular & Reativar (Firebase)</title>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-database-compat.js"></script>
     
     <style>
-        /* MESMO CSS DE ANTES MANTIDO AQUI PARA ECONOMIZAR ESPAÇO, PODE MANTER O SEU CSS COMPLETO (MODO CLARO E ESCURO) AQUI */
         :root { --primary: #2c3e50; --sede: #2980b9; --anexo: #8e44ad; --danger: #e74c3c; --success: #27ae60; --dark-header: #1a252f; --bg-body: #f0f2f5; --bg-card: #ffffff; --text-main: #333333; --text-muted: #666666; --bg-input: #ffffff; --border-color: #dddddd; --bg-status: #f8f9fa; }
         [data-theme="dark"] { --bg-body: #121212; --bg-card: #1e1e1e; --text-main: #e0e0e0; --text-muted: #b0b0b0; --bg-input: #2d2d2d; --border-color: #444444; --bg-status: #252525; --primary: #34495e; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-body); color: var(--text-main); margin: 0; display: flex; flex-direction: column; min-height: 100vh; transition: background 0.3s, color 0.3s; }
@@ -29,6 +28,9 @@
         #manager-panel { display: none; background: var(--bg-status); padding: 20px; border-top: 2px solid var(--border-color); }
         .mgr-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .log-box { background: #000; color: #0f0; padding: 10px; font-family: monospace; height: 150px; overflow-y: auto; border-radius: 4px; font-size: 12px; }
+        .ultimo-chamado { margin-top: 15px; padding: 12px; background: var(--bg-status); border-radius: 6px; font-size: 0.85em; border: 1px dashed var(--border-color); text-align: center; color: var(--text-muted); }
+        .ultimo-chamado strong { color: var(--text-main); }
+        .btn-equipe { border:none; color:white; width:auto; padding:8px 12px; margin:5px; border-radius:4px; font-weight:bold; cursor:pointer; }
     </style>
 </head>
 <body>
@@ -61,6 +63,7 @@
             </div>
             <input type="text" id="wo-sede" placeholder="Nº da WO ou REQ">
             <button class="btn-send" onclick="encaminhar('sede')">Encaminhar Chamado</button>
+            <div id="ultimo-sede" class="ultimo-chamado">Aguardando chamados...</div>
             <button class="btn-mgr" id="btn-open-mgr" onclick="pedirSenhaGerente()">Acesso Gerencial</button>
         </div>
     </div>
@@ -74,24 +77,32 @@
             </div>
             <input type="text" id="wo-anexo" placeholder="Nº da WO ou REQ">
             <button class="btn-send" onclick="encaminhar('anexo')">Encaminhar Chamado</button>
+            <div id="ultimo-anexo" class="ultimo-chamado">Aguardando chamados...</div>
         </div>
     </div>
 </div>
 
 <div id="manager-panel">
     <h3><center>⚙️ PAINEL DE CONTROLE GERENCIAL</center></h3>
+    
     <div class="mgr-grid">
         <div>
             <h4>Comandos SEDE</h4>
-            <button class="btn-fail" style="background:var(--danger); color:white;" onclick="gerenteAcao('sede', 'falha')">Reportar Falha</button>
-            <button class="btn-send" style="background:var(--primary); color:white; margin-top:5px;" onclick="gerenteAcao('sede', 'pular')">Avançar Fila Manualmente</button>
+            <button class="btn-fail" style="background:var(--danger); color:white;" onclick="gerenteAcao('sede', 'falha')">Reportar Falha (Atual)</button>
+            <button class="btn-send" style="background:var(--primary); color:white; margin-top:5px;" onclick="gerenteAcao('sede', 'pular')">Avançar Fila Manual</button>
         </div>
         <div>
             <h4>Comandos ANEXO</h4>
-            <button class="btn-fail" style="background:var(--danger); color:white;" onclick="gerenteAcao('anexo', 'falha')">Reportar Falha</button>
-            <button class="btn-send" style="background:var(--primary); color:white; margin-top:5px;" onclick="gerenteAcao('anexo', 'pular')">Avançar Fila Manualmente</button>
+            <button class="btn-fail" style="background:var(--danger); color:white;" onclick="gerenteAcao('anexo', 'falha')">Reportar Falha (Atual)</button>
+            <button class="btn-send" style="background:var(--primary); color:white; margin-top:5px;" onclick="gerenteAcao('anexo', 'pular')">Avançar Fila Manual</button>
         </div>
     </div>
+
+    <h4 style="margin-top:20px; text-align:center;">🚦 Gestão da Equipe (Clique para Ativar / Desativar)</h4>
+    <div id="lista-equipe-mgr" style="display: flex; flex-wrap: wrap; justify-content: center; background: var(--bg-card); padding: 15px; border-radius: 8px; border: 1px solid var(--border-color);">
+        Carregando equipe...
+    </div>
+
     <h4 style="margin-top:20px;">Log Global de Eventos</h4>
     <div id="global-log" class="log-box"></div>
 </div>
@@ -110,17 +121,15 @@
   appId: "1:132113485171:web:312ed786f844b2fd140906"
 };
 
-    // Inicializa o Firebase
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
-    const dbRef = database.ref('globalweb/fila'); // Nome da "tabela" no banco
+    const dbRef = database.ref('globalweb/fila'); 
 
     // ==========================================
     // LÓGICA DO SISTEMA
     // ==========================================
     let atendenteAtual = sessionStorage.getItem('atendente') || "";
     
-    // Dados padrão caso o banco esteja vazio
     const tecBase = {
         sede: [
             { nome: "Lucas", ent: "07:00", sai: "16:00", almI: "11:00", almF: "12:00", ativo: true },
@@ -135,27 +144,17 @@
         ]
     };
 
-    let db = { tecnicos: tecBase, pos: { sede: 0, anexo: 0 }, logs: [] };
+    let db = { tecnicos: tecBase, pos: { sede: 0, anexo: 0 }, logs: [], ultimo: { sede: null, anexo: null } };
 
-    // ESCUTA O BANCO EM TEMPO REAL (A mágica acontece aqui)
     dbRef.on('value', (snapshot) => {
         const dadosDoBanco = snapshot.val();
-        if (dadosDoBanco) {
-            db = dadosDoBanco; // Se tem dados no servidor, puxa pra tela
-        } else {
-            dbRef.set(db); // Se for a 1ª vez de todas, cria no servidor
-        }
-        render(); // Atualiza a tela automaticamente
+        if (dadosDoBanco) db = dadosDoBanco; 
+        else dbRef.set(db); 
+        render(); 
     });
 
-    // Função para salvar no servidor
-    function sync() {
-        dbRef.set(db); 
-    }
+    function sync() { dbRef.set(db); }
 
-    // ==========================================
-    // REGRAS DE HORÁRIO ATUALIZADAS
-    // ==========================================
     function checkStatus(tec) {
         if(!tec.ativo) return { ok: false, msg: "FALHA / INDISPONÍVEL" };
         const agora = new Date();
@@ -172,6 +171,44 @@
         return { ok: true, msg: "DISPONÍVEL" };
     }
 
+    // NOVA FUNÇÃO: Avança buscando o próximo válido
+    function avancarFila(area) {
+        let i = db.pos[area];
+        let count = 0;
+        let achou = false;
+        
+        do {
+            i = (i + 1) % db.tecnicos[area].length;
+            count++;
+            if(checkStatus(db.tecnicos[area][i]).ok) {
+                achou = true;
+                break;
+            }
+        } while (count < db.tecnicos[area].length);
+        
+        db.pos[area] = i; 
+    }
+
+    // NOVA FUNÇÃO: Roda sozinha para desengasgar a fila
+    function verificarFilaAutomatica() {
+        let mudou = false;
+        ['sede', 'anexo'].forEach(area => {
+            if(db.tecnicos && db.tecnicos[area]) {
+                const tecAtual = db.tecnicos[area][db.pos[area]];
+                if (!checkStatus(tecAtual).ok) {
+                    // Só pula se tiver outra pessoa online na área para não dar loop infinito
+                    let temAlguem = db.tecnicos[area].some(t => checkStatus(t).ok);
+                    if (temAlguem) {
+                        avancarFila(area);
+                        mudou = true;
+                    }
+                }
+            }
+        });
+        if (mudou) sync();
+        else render();
+    }
+
     function encaminhar(area) {
         const wo = document.getElementById(`wo-${area}`).value;
         const tec = db.tecnicos[area][db.pos[area]];
@@ -179,21 +216,16 @@
         const status = checkStatus(tec);
         if(!status.ok) return alert("Técnico indisponível: " + status.msg);
 
-        // Garante que o log existe
         if(!db.logs) db.logs = [];
-        db.logs.unshift(`[${new Date().toLocaleTimeString()}] ${area.toUpperCase()}: ${wo} p/ ${tec.nome} (${atendenteAtual})`);
+        if(!db.ultimo) db.ultimo = { sede: null, anexo: null }; 
+
+        const horaRegistro = new Date().toLocaleTimeString();
+        db.logs.unshift(`[${horaRegistro}] ${area.toUpperCase()}: ${wo} p/ ${tec.nome} (${atendenteAtual})`);
         
-        let i = db.pos[area];
-        let original = i;
-        do {
-            i = (i + 1) % db.tecnicos[area].length;
-            if(checkStatus(db.tecnicos[area][i]).ok) break;
-        } while (i !== original);
+        db.ultimo[area] = { tecnico: tec.nome, wo: wo, hora: horaRegistro, atendente: atendenteAtual };
         
-        db.pos[area] = i;
+        avancarFila(area); // Usa a lógica inteligente para pular
         document.getElementById(`wo-${area}`).value = "";
-        
-        // Manda pro banco do Google!
         sync();
     }
 
@@ -203,14 +235,28 @@
         if(tipo === 'falha') {
             tec.ativo = false;
             db.logs.unshift(`[${new Date().toLocaleTimeString()}] !!! GERENCIAL: Falha em ${tec.nome}`);
+            avancarFila(area); // A MÁGICA DE PULAR ASSIM QUE REPORTAR A FALHA
         } else {
-            db.pos[area] = (db.pos[area] + 1) % db.tecnicos[area].length;
-            db.logs.unshift(`[${new Date().toLocaleTimeString()}] GERENCIAL: Fila ${area} avançada`);
+            db.logs.unshift(`[${new Date().toLocaleTimeString()}] GERENCIAL: Fila ${area} avançada manual`);
+            avancarFila(area);
         }
         sync();
     }
 
+    // NOVA FUNÇÃO: Reativar e Desativar Equipe
+    function toggleStatus(area, index) {
+        const tec = db.tecnicos[area][index];
+        tec.ativo = !tec.ativo;
+        if (!db.logs) db.logs = [];
+        const statusTxt = tec.ativo ? 'REATIVADO' : 'DESATIVADO';
+        db.logs.unshift(`[${new Date().toLocaleTimeString()}] GERENCIAL: ${tec.nome} (${area}) foi ${statusTxt}`);
+        
+        verificarFilaAutomatica(); 
+        sync();
+    }
+
     function render() {
+        // Atualiza a tela principal
         ['sede', 'anexo'].forEach(area => {
             if(db.tecnicos && db.tecnicos[area]) {
                 const tec = db.tecnicos[area][db.pos[area]];
@@ -219,9 +265,29 @@
                 const elStatus = document.getElementById(`status-${area}`);
                 elStatus.innerText = status.msg;
                 elStatus.style.color = status.ok ? "var(--success)" : "var(--danger)";
+
+                const divUltimo = document.getElementById(`ultimo-${area}`);
+                if(db.ultimo && db.ultimo[area]) {
+                    const ult = db.ultimo[area];
+                    divUltimo.innerHTML = `<strong>Último:</strong> ${ult.wo} &rarr; <b>${ult.tecnico}</b> <br><small>Enviado por ${ult.atendente} às ${ult.hora}</small>`;
+                } else { divUltimo.innerHTML = `Aguardando chamados...`; }
             }
         });
         document.getElementById('global-log').innerHTML = (db.logs || []).join('<br>');
+
+        // Renderiza os botões coloridos de reativar/desativar
+        let htmlEquipe = '';
+        ['sede', 'anexo'].forEach(area => {
+             if(db.tecnicos && db.tecnicos[area]) {
+                 db.tecnicos[area].forEach((t, i) => {
+                      let corBtn = t.ativo ? "var(--success)" : "var(--danger)";
+                      let icone = t.ativo ? "🟢" : "🔴";
+                      htmlEquipe += `<button class="btn-equipe" style="background:${corBtn};" onclick="toggleStatus('${area}', ${i})">${icone} ${t.nome}</button>`;
+                 });
+             }
+        });
+        const painelEquipe = document.getElementById('lista-equipe-mgr');
+        if(painelEquipe) painelEquipe.innerHTML = htmlEquipe;
     }
 
     // ==========================================
@@ -242,6 +308,7 @@
     }
 
     function logout() { sessionStorage.clear(); location.reload(); }
+    
     function pedirSenhaGerente() {
         if(prompt("Digite a senha de Gerente:") === "admin123") {
             document.getElementById('manager-panel').style.display = 'block';
@@ -255,11 +322,12 @@
         localStorage.setItem("theme", newTheme);
         document.getElementById("theme-icon").innerText = newTheme === "dark" ? "☀️ Modo Claro" : "🌙 Modo Escuro";
     }
+    
     const savedTheme = localStorage.getItem("theme") || "light";
     document.documentElement.setAttribute("data-theme", savedTheme);
     document.getElementById("theme-icon").innerText = savedTheme === "dark" ? "☀️ Modo Claro" : "🌙 Modo Escuro";
 
-    setInterval(render, 30000); // Atualiza os horários a cada 30s
+    setInterval(verificarFilaAutomatica, 10000); // A cada 10s ele verifica se deu hora de pular alguém
 </script>
 </body>
 </html>
